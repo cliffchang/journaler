@@ -69,27 +69,41 @@ h1 {
   font-size: 1.25rem;
 }
 
-/* Screen 1: core grid */
-.core-grid {
+/* Screen 1: GEW family columns (positive | negative) */
+.wheel-columns {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 
-.core-btn {
-  border: none;
-  border-radius: 16px;
-  font-size: 1.3rem;
+.wheel-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.family-btn {
+  flex: 1;
+  border: 2px solid var(--family-color);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--fg);
+  font-size: 1rem;
   font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 6px;
+}
+
+.family-btn.selected {
+  background: var(--family-color);
   color: #fff;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
-  cursor: pointer;
-  min-height: 96px;
 }
 
-.core-btn:active {
-  filter: brightness(0.9);
+.family-btn:active {
+  filter: brightness(0.92);
 }
 
 .home-footer {
@@ -105,39 +119,6 @@ h1 {
   font-size: 1rem;
   padding: 12px;
   cursor: pointer;
-}
-
-/* Screen 2: chips */
-.chip-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-content: flex-start;
-  flex: 1;
-}
-
-.chip {
-  border: 2px solid var(--border);
-  background: var(--card);
-  color: var(--fg);
-  border-radius: 999px;
-  padding: 12px 18px;
-  font-size: 1.05rem;
-  cursor: pointer;
-  min-height: 48px;
-}
-
-.chip.selected {
-  border-color: var(--chip-color, var(--accent));
-  background: var(--chip-color, var(--accent));
-  color: #fff;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-}
-
-.selection-summary {
-  color: var(--muted);
-  font-size: 0.9rem;
-  min-height: 1.2em;
 }
 
 .primary-btn {
@@ -160,7 +141,33 @@ h1 {
   filter: brightness(0.9);
 }
 
-/* Screen 3: details */
+/* Details: per-emotion intensity */
+.intensity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intensity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intensity-label {
+  flex: 0 0 110px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.intensity-item .intensity-row {
+  flex: 1;
+}
+
+.intensity-item .intensity-btn {
+  min-height: 40px;
+}
+
 .field-label {
   font-weight: 600;
 }

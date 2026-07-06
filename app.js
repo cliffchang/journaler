@@ -1,4 +1,10 @@
-import { CORES, coreByKey } from './emotions.js';
+import {
+  POSITIVE,
+  NEGATIVE,
+  familyByKey,
+  familyColor,
+  LEGACY_CORE_COLORS,
+} from './emotions.js';
 import {
   addEntry,
   updateEntry,
@@ -8,9 +14,8 @@ import {
   exportCsv,
 } from './db.js';
 
-// --- Draft state for the entry being composed ---
-let draft = { emotions: [], intensity: null };
-let currentCore = null;
+// Draft entry being composed: map of family key -> intensity (null until rated)
+let draft = new Map();
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,85 +25,62 @@ function showScreen(id) {
 }
 
 function resetDraft() {
-  draft = { emotions: [], intensity: null };
-  currentCore = null;
+  draft = new Map();
   $('comment-input').value = '';
-  document.querySelectorAll('.intensity-btn').forEach((b) => b.classList.remove('selected'));
+  document.querySelectorAll('.family-btn.selected').forEach((b) => b.classList.remove('selected'));
+  $('home-next').disabled = true;
 }
 
-// --- Screen 1: core grid ---
-function renderCoreGrid() {
-  const grid = $('core-grid');
-  grid.innerHTML = '';
-  for (const core of CORES) {
+// --- Screen 1: family grid ---
+function renderFamilyColumn(colId, families) {
+  const col = $(colId);
+  col.innerHTML = '';
+  for (const family of families) {
     const btn = document.createElement('button');
-    btn.className = 'core-btn';
-    btn.textContent = core.label;
-    btn.style.background = core.color;
+    btn.className = 'family-btn';
+    btn.textContent = family.label;
+    btn.dataset.key = family.key;
+    btn.style.setProperty('--family-color', familyColor(family.key));
     btn.addEventListener('click', () => {
-      currentCore = core;
-      renderSpecifics();
-      showScreen('screen-specifics');
+      if (draft.has(family.key)) draft.delete(family.key);
+      else draft.set(family.key, null);
+      btn.classList.toggle('selected', draft.has(family.key));
+      $('home-next').disabled = draft.size === 0;
     });
-    grid.appendChild(btn);
+    col.appendChild(btn);
   }
 }
 
-// --- Screen 2: specifics ---
-function isSelected(core, specific) {
-  return draft.emotions.some((e) => e.core === core && e.specific === specific);
-}
+// --- Screen 2: per-emotion intensity + comment ---
+function renderIntensityList() {
+  const list = $('intensity-list');
+  list.innerHTML = '';
+  for (const key of draft.keys()) {
+    const row = document.createElement('div');
+    row.className = 'intensity-item';
 
-function renderSpecifics() {
-  $('specifics-title').textContent = currentCore.label;
-  const grid = $('specifics-grid');
-  grid.innerHTML = '';
-  for (const specific of currentCore.specifics) {
-    const chip = document.createElement('button');
-    chip.className = 'chip';
-    chip.textContent = specific;
-    chip.style.setProperty('--chip-color', currentCore.color);
-    chip.classList.toggle('selected', isSelected(currentCore.key, specific));
-    chip.addEventListener('click', () => {
-      const idx = draft.emotions.findIndex(
-        (e) => e.core === currentCore.key && e.specific === specific
-      );
-      if (idx >= 0) draft.emotions.splice(idx, 1);
-      else draft.emotions.push({ core: currentCore.key, specific });
-      chip.classList.toggle('selected');
-      updateSelectionSummary();
-    });
-    grid.appendChild(chip);
-  }
-  updateSelectionSummary();
-}
+    const label = document.createElement('span');
+    label.className = 'intensity-label';
+    label.textContent = familyByKey[key].label;
+    label.style.color = familyColor(key);
+    row.appendChild(label);
 
-function selectionText() {
-  return draft.emotions.map((e) => e.specific).join(', ');
-}
-
-function updateSelectionSummary() {
-  $('selection-summary').textContent = draft.emotions.length
-    ? `Selected: ${selectionText()}`
-    : '';
-  $('specifics-next').disabled = draft.emotions.length === 0;
-}
-
-// --- Screen 3: details ---
-function renderIntensityRow() {
-  const row = $('intensity-row');
-  row.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'intensity-btn';
-    btn.textContent = i;
-    btn.addEventListener('click', () => {
-      const wasSelected = btn.classList.contains('selected');
-      row.querySelectorAll('.intensity-btn').forEach((b) => b.classList.remove('selected'));
-      draft.intensity = wasSelected ? null : i;
-      if (!wasSelected) btn.classList.add('selected');
-    });
-    row.appendChild(btn);
+    const btns = document.createElement('div');
+    btns.className = 'intensity-row';
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'intensity-btn';
+      btn.textContent = i;
+      btn.addEventListener('click', () => {
+        const wasSelected = btn.classList.contains('selected');
+        btns.querySelectorAll('.intensity-btn').forEach((b) => b.classList.remove('selected'));
+        draft.set(key, wasSelected ? null : i);
+        if (!wasSelected) btn.classList.add('selected');
+      });
+      btns.appendChild(btn);
+    }
+    row.appendChild(btns);
+    list.appendChild(row);
   }
 }
 
@@ -106,7 +88,6 @@ function toast(msg) {
   const el = $('toast');
   el.textContent = msg;
   el.hidden = false;
-  // restart animation
   el.style.animation = 'none';
   void el.offsetWidth;
   el.style.animation = '';
@@ -118,8 +99,7 @@ async function save() {
   await addEntry({
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
-    emotions: draft.emotions,
-    intensity: draft.intensity,
+    emotions: [...draft].map(([family, intensity]) => ({ family, intensity })),
     comment: comment || null,
   });
   resetDraft();
@@ -142,14 +122,31 @@ function fmtDay(iso) {
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// Handles both GEW entries ({family, intensity}) and legacy Willcox-era
+// entries ({core, specific} with a single entry-level intensity).
+function emotionChipData(entry) {
+  return entry.emotions.map((e) => {
+    if (e.family) {
+      return {
+        text: e.intensity ? `${familyByKey[e.family]?.label ?? e.family} ${e.intensity}` : (familyByKey[e.family]?.label ?? e.family),
+        color: familyColor(e.family),
+      };
+    }
+    return {
+      text: entry.intensity ? `${e.specific} ${entry.intensity}` : e.specific,
+      color: LEGACY_CORE_COLORS[e.core] ?? '#888',
+    };
+  });
+}
+
 function entryChips(entry) {
   const wrap = document.createElement('div');
   wrap.className = 'entry-chips';
-  for (const e of entry.emotions) {
+  for (const { text, color } of emotionChipData(entry)) {
     const chip = document.createElement('span');
     chip.className = 'entry-chip';
-    chip.textContent = e.specific;
-    chip.style.background = coreByKey[e.core]?.color ?? 'var(--accent)';
+    chip.textContent = text;
+    chip.style.background = color;
     wrap.appendChild(chip);
   }
   return wrap;
@@ -189,11 +186,6 @@ function entryCard(entry) {
   const t = document.createElement('span');
   t.textContent = fmtTime(entry.timestamp);
   time.appendChild(t);
-  if (entry.intensity) {
-    const i = document.createElement('span');
-    i.textContent = `intensity ${entry.intensity}/5`;
-    time.appendChild(i);
-  }
   card.appendChild(time);
   card.appendChild(entryChips(entry));
 
@@ -211,30 +203,44 @@ function entryCard(entry) {
 function openEditor(card, entry) {
   const editor = document.createElement('div');
   editor.className = 'entry-edit';
+  editor.addEventListener('click', (ev) => ev.stopPropagation());
 
-  const intensityRow = document.createElement('div');
-  intensityRow.className = 'intensity-row';
-  let editIntensity = entry.intensity ?? null;
-  for (let i = 1; i <= 5; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'intensity-btn';
-    btn.textContent = i;
-    btn.classList.toggle('selected', editIntensity === i);
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const wasSelected = btn.classList.contains('selected');
-      intensityRow.querySelectorAll('.intensity-btn').forEach((b) => b.classList.remove('selected'));
-      editIntensity = wasSelected ? null : i;
-      if (!wasSelected) btn.classList.add('selected');
-    });
-    intensityRow.appendChild(btn);
+  // Per-emotion intensity editing (GEW entries only; legacy entries keep
+  // their stored shape and just get comment/delete).
+  const edited = entry.emotions.map((e) => ({ ...e }));
+  if (edited.every((e) => e.family)) {
+    for (const e of edited) {
+      const row = document.createElement('div');
+      row.className = 'intensity-item';
+      const label = document.createElement('span');
+      label.className = 'intensity-label';
+      label.textContent = familyByKey[e.family]?.label ?? e.family;
+      label.style.color = familyColor(e.family);
+      row.appendChild(label);
+      const btns = document.createElement('div');
+      btns.className = 'intensity-row';
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'intensity-btn';
+        btn.textContent = i;
+        btn.classList.toggle('selected', e.intensity === i);
+        btn.addEventListener('click', () => {
+          const wasSelected = btn.classList.contains('selected');
+          btns.querySelectorAll('.intensity-btn').forEach((b) => b.classList.remove('selected'));
+          e.intensity = wasSelected ? null : i;
+          if (!wasSelected) btn.classList.add('selected');
+        });
+        btns.appendChild(btn);
+      }
+      row.appendChild(btns);
+      editor.appendChild(row);
+    }
   }
 
   const textarea = document.createElement('textarea');
   textarea.rows = 3;
   textarea.placeholder = 'Add a comment…';
   textarea.value = entry.comment ?? '';
-  textarea.addEventListener('click', (ev) => ev.stopPropagation());
 
   const actions = document.createElement('div');
   actions.className = 'entry-edit-actions';
@@ -242,18 +248,16 @@ function openEditor(card, entry) {
   const saveBtn = document.createElement('button');
   saveBtn.className = 'primary-btn';
   saveBtn.textContent = 'Save';
-  saveBtn.addEventListener('click', async (ev) => {
-    ev.stopPropagation();
+  saveBtn.addEventListener('click', async () => {
     const comment = textarea.value.trim();
-    await updateEntry({ ...entry, intensity: editIntensity, comment: comment || null });
+    await updateEntry({ ...entry, emotions: edited, comment: comment || null });
     renderHistory();
   });
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'danger-btn';
   deleteBtn.textContent = 'Delete';
-  deleteBtn.addEventListener('click', async (ev) => {
-    ev.stopPropagation();
+  deleteBtn.addEventListener('click', async () => {
     if (confirm('Delete this entry?')) {
       await deleteEntry(entry.id);
       renderHistory();
@@ -262,7 +266,6 @@ function openEditor(card, entry) {
 
   actions.appendChild(saveBtn);
   actions.appendChild(deleteBtn);
-  editor.appendChild(intensityRow);
   editor.appendChild(textarea);
   editor.appendChild(actions);
   card.appendChild(editor);
@@ -274,23 +277,19 @@ $('btn-history').addEventListener('click', () => {
   showScreen('screen-history');
 });
 $('btn-export').addEventListener('click', () => showScreen('screen-export'));
-$('specifics-back').addEventListener('click', () => showScreen('screen-home'));
-$('specifics-next').addEventListener('click', () => {
-  $('details-summary').textContent = selectionText();
+$('home-next').addEventListener('click', () => {
+  renderIntensityList();
   showScreen('screen-details');
 });
-$('details-back').addEventListener('click', () => {
-  renderSpecifics();
-  showScreen('screen-specifics');
-});
+$('details-back').addEventListener('click', () => showScreen('screen-home'));
 $('save-btn').addEventListener('click', save);
 $('history-back').addEventListener('click', () => showScreen('screen-home'));
 $('export-back').addEventListener('click', () => showScreen('screen-home'));
 $('export-json').addEventListener('click', exportJson);
 $('export-csv').addEventListener('click', exportCsv);
 
-renderCoreGrid();
-renderIntensityRow();
+renderFamilyColumn('col-positive', POSITIVE);
+renderFamilyColumn('col-negative', NEGATIVE);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');

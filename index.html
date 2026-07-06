@@ -12,36 +12,28 @@
 </head>
 <body>
   <main>
-    <!-- Screen 1: core emotions -->
+    <!-- Screen 1: Geneva Emotion Wheel families -->
     <section id="screen-home" class="screen active">
       <h1>How are you feeling?</h1>
-      <div id="core-grid" class="core-grid"></div>
+      <div class="wheel-columns">
+        <div id="col-positive" class="wheel-col"></div>
+        <div id="col-negative" class="wheel-col"></div>
+      </div>
+      <button id="home-next" class="primary-btn" disabled>Next</button>
       <footer class="home-footer">
         <button class="link-btn" id="btn-history">History</button>
         <button class="link-btn" id="btn-export">Export</button>
       </footer>
     </section>
 
-    <!-- Screen 2: specific feelings -->
-    <section id="screen-specifics" class="screen">
-      <header class="screen-header">
-        <button class="link-btn" id="specifics-back">&larr; Back</button>
-        <h2 id="specifics-title"></h2>
-      </header>
-      <div id="specifics-grid" class="chip-grid"></div>
-      <div id="selection-summary" class="selection-summary"></div>
-      <button id="specifics-next" class="primary-btn" disabled>Next</button>
-    </section>
-
-    <!-- Screen 3: intensity + comment -->
+    <!-- Screen 2: per-emotion intensity + comment -->
     <section id="screen-details" class="screen">
       <header class="screen-header">
         <button class="link-btn" id="details-back">&larr; Back</button>
         <h2>Details</h2>
       </header>
-      <div id="details-summary" class="selection-summary"></div>
-      <p class="field-label">Intensity <span class="optional">(optional)</span></p>
-      <div id="intensity-row" class="intensity-row"></div>
+      <p class="field-label">Intensity <span class="optional">(optional, per emotion)</span></p>
+      <div id="intensity-list" class="intensity-list"></div>
       <p class="field-label">Comment <span class="optional">(optional)</span></p>
       <textarea id="comment-input" rows="3" placeholder="What's going on?"></textarea>
       <button id="save-btn" class="primary-btn">Save</button>

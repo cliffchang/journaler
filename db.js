@@ -73,13 +73,18 @@ function csvField(value) {
 
 export async function exportCsv() {
   const entries = await getAllEntries();
-  const rows = [['timestamp', 'cores', 'emotions', 'intensity', 'comment']];
+  const rows = [['timestamp', 'emotions', 'intensities', 'comment']];
   for (const e of entries) {
+    // GEW entries: {family, intensity}. Legacy entries: {core, specific}
+    // with a single entry-level intensity.
+    const names = e.emotions.map((em) => em.family ?? em.specific);
+    const intensities = e.emotions.map((em) =>
+      em.family ? (em.intensity ?? '') : (e.intensity ?? '')
+    );
     rows.push([
       e.timestamp,
-      [...new Set(e.emotions.map((em) => em.core))].join(';'),
-      e.emotions.map((em) => em.specific).join(';'),
-      e.intensity ?? '',
+      names.join(';'),
+      intensities.join(';'),
       e.comment ?? '',
     ]);
   }
