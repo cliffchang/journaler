@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1c1b22" />
+  <title>Emotion Log</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <!-- Screen 1: core emotions -->
+    <section id="screen-home" class="screen active">
+      <h1>How are you feeling?</h1>
+      <div id="core-grid" class="core-grid"></div>
+      <footer class="home-footer">
+        <button class="link-btn" id="btn-history">History</button>
+        <button class="link-btn" id="btn-export">Export</button>
+      </footer>
+    </section>
+
+    <!-- Screen 2: specific feelings -->
+    <section id="screen-specifics" class="screen">
+      <header class="screen-header">
+        <button class="link-btn" id="specifics-back">&larr; Back</button>
+        <h2 id="specifics-title"></h2>
+      </header>
+      <div id="specifics-grid" class="chip-grid"></div>
+      <div id="selection-summary" class="selection-summary"></div>
+      <button id="specifics-next" class="primary-btn" disabled>Next</button>
+    </section>
+
+    <!-- Screen 3: intensity + comment -->
+    <section id="screen-details" class="screen">
+      <header class="screen-header">
+        <button class="link-btn" id="details-back">&larr; Back</button>
+        <h2>Details</h2>
+      </header>
+      <div id="details-summary" class="selection-summary"></div>
+      <p class="field-label">Intensity <span class="optional">(optional)</span></p>
+      <div id="intensity-row" class="intensity-row"></div>
+      <p class="field-label">Comment <span class="optional">(optional)</span></p>
+      <textarea id="comment-input" rows="3" placeholder="What's going on?"></textarea>
+      <button id="save-btn" class="primary-btn">Save</button>
+    </section>
+
+    <!-- History -->
+    <section id="screen-history" class="screen">
+      <header class="screen-header">
+        <button class="link-btn" id="history-back">&larr; Back</button>
+        <h2>History</h2>
+      </header>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <!-- Export -->
+    <section id="screen-export" class="screen">
+      <header class="screen-header">
+        <button class="link-btn" id="export-back">&larr; Back</button>
+        <h2>Export</h2>
+      </header>
+      <p class="export-note">All data lives only on this device. Download a copy:</p>
+      <button id="export-json" class="primary-btn">Download JSON</button>
+      <button id="export-csv" class="primary-btn">Download CSV</button>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden>Logged ✓</div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
