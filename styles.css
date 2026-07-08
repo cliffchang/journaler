@@ -47,6 +47,7 @@ main {
   flex-direction: column;
   gap: 16px;
   min-height: calc(100vh - 32px);
+  min-height: calc(100dvh - 32px);
 }
 
 .screen.active {

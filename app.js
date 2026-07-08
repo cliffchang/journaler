@@ -241,6 +241,19 @@ function openEditor(card, entry) {
   textarea.rows = 3;
   textarea.placeholder = 'Add a comment…';
   textarea.value = entry.comment ?? '';
+  textarea.enterKeyHint = 'done';
+
+  const saveEdit = async () => {
+    const comment = textarea.value.trim();
+    await updateEntry({ ...entry, emotions: edited, comment: comment || null });
+    renderHistory();
+  };
+  textarea.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      saveEdit();
+    }
+  });
 
   const actions = document.createElement('div');
   actions.className = 'entry-edit-actions';
@@ -248,11 +261,7 @@ function openEditor(card, entry) {
   const saveBtn = document.createElement('button');
   saveBtn.className = 'primary-btn';
   saveBtn.textContent = 'Save';
-  saveBtn.addEventListener('click', async () => {
-    const comment = textarea.value.trim();
-    await updateEntry({ ...entry, emotions: edited, comment: comment || null });
-    renderHistory();
-  });
+  saveBtn.addEventListener('click', saveEdit);
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'danger-btn';
@@ -283,6 +292,13 @@ $('home-next').addEventListener('click', () => {
 });
 $('details-back').addEventListener('click', () => showScreen('screen-home'));
 $('save-btn').addEventListener('click', save);
+// Enter on the keyboard saves the entry (Shift+Enter for a rare newline)
+$('comment-input').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && !ev.shiftKey) {
+    ev.preventDefault();
+    save();
+  }
+});
 $('history-back').addEventListener('click', () => showScreen('screen-home'));
 $('export-back').addEventListener('click', () => showScreen('screen-home'));
 $('export-json').addEventListener('click', exportJson);

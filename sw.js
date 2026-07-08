@@ -1,4 +1,4 @@
-const CACHE = 'emotion-log-v2';
+const CACHE = 'emotion-log-v3';
 const ASSETS = [
   './',
   './index.html',
